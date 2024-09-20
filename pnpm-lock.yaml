@@ -65,6 +65,9 @@ importers:
       typescript:
         specifier: ^5.6.2
         version: 5.6.2
+      yaml:
+        specifier: ^2.5.1
+        version: 2.5.1
     devDependencies:
       '@types/react':
         specifier: ^18.3.8
@@ -2070,6 +2073,11 @@ packages:
   yaml@1.10.2:
     resolution: {integrity: sha512-r3vXyErRCYJ7wg28yvBY5VSoAF8ZvlcW9/BwUzEtUsjvX/DKs24dIkuwjtuprwJJHsbyUbLApepYTR1BN4uHrg==}
     engines: {node: '>= 6'}
+
+  yaml@2.5.1:
+    resolution: {integrity: sha512-bLQOjaX/ADgQ20isPJRvF0iRUHIxVhYvr53Of7wGcWlO2jvtUlH5m87DsmulFVxRpNLOnI4tB6p/oh8D7kpn9Q==}
+    engines: {node: '>= 14'}
+    hasBin: true
 
 snapshots:
 
@@ -4238,3 +4246,5 @@ snapshots:
       strip-ansi: 7.1.0
 
   yaml@1.10.2: {}
+
+  yaml@2.5.1: {}

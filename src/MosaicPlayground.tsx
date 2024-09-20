@@ -24,10 +24,13 @@ import Editor from "@monaco-editor/react";
 import { useContext, useEffect, useState } from "react";
 import { useAsync } from "react-async-hook";
 import { format } from "date-fns";
-import "allotment/dist/style.css";
 import { Allotment } from "allotment";
 import { KeyCode, KeyMod, type languages } from "monaco-editor";
 import * as monaco from "monaco-editor";
+import { parse, stringify } from "yaml";
+import "allotment/dist/style.css";
+import { downloadBlob } from "./exportChart.js";
+import { snakeCase } from "change-case";
 
 const JSON_SCHEMA_URL = "https://raw.githubusercontent.com/uwdata/mosaic/main/docs/public/schema/v0.11.0.json";
 function getSchemas(): languages.json.LanguageServiceDefaults["diagnosticsOptions"] {
@@ -44,12 +47,14 @@ function getSchemas(): languages.json.LanguageServiceDefaults["diagnosticsOption
   };
 }
 
-export async function getExampleSpecsFromGithub(): Promise<{ name: string; url: string }[]> {
-  const metaURL = "https://api.github.com/repos/uwdata/mosaic/contents/specs/json";
+export type SpecFormat = "json" | "yaml";
+
+export async function getExampleSpecsFromGithub(format: SpecFormat): Promise<{ name: string; url: string }[]> {
+  const metaURL = "https://api.github.com/repos/uwdata/mosaic/contents/specs/" + format;
   const res = await fetch(metaURL);
   const specs = await res.json();
   const examples = specs.map((s: any) => ({
-    name: s.name.replace(".json", ""),
+    name: s.name.replace(".json", "").replace(".yaml", ""),
     url: s.download_url,
   }));
   return examples;
@@ -65,13 +70,14 @@ export const MosaicPlayground = () => {
   const mosaic = useContext(MosaicContext);
   const [parsedSpec, setParsedSpec] = useState(DEFAULT_SPEC);
   const [rawSpec, setRawSpec] = useState(JSON.stringify(DEFAULT_SPEC, null, 4));
-  const examples = useAsync(getExampleSpecsFromGithub, []);
+  const [specFormat, setSpecFormat] = useState<SpecFormat>("json");
+  const examples = useAsync(getExampleSpecsFromGithub, [specFormat]);
   // TODO: allow setting custom DuckDB rest/socket backend connection
   // const [useBackend, setUseBackend] = useState(false);
   useEffect(() => {
     let newParsed;
     try {
-      newParsed = JSON.parse(rawSpec);
+      newParsed = specFormat == "json" ? JSON.parse(rawSpec) : parse(rawSpec);
     } catch (e) {}
     if (newParsed) {
       setParsedSpec(newParsed);
@@ -83,9 +89,17 @@ export const MosaicPlayground = () => {
   async function loadExample(name: string) {
     const ex = examples.result?.find((e) => e.name === name);
     if (!ex) return;
-    const spec = await (await fetch(ex.url)).json();
-    setRawSpec(JSON.stringify(spec, null, 4));
+    const spec = await (await fetch(ex.url)).text();
+    setRawSpec(spec);
   }
+
+  function changeSpecFormat(value: SpecFormat) {
+    // TODO: convert currently parsed spec to new format
+    const newRawSpec = value === "json" ? JSON.stringify(parsedSpec, null, 4) : stringify(parsedSpec, { indent: 4 });
+    setSpecFormat(value);
+    setRawSpec(newRawSpec);
+  }
+
   const [showLogs, setShowLogs] = useState(true);
 
   const [logs, setLogs] = useState<QueryLog[]>([]);
@@ -114,34 +128,75 @@ export const MosaicPlayground = () => {
 
   return (
     <Stack h="100%" w="full" spacing={0}>
-      <HStack p={4} justifyContent="center" borderBottom="1px solid" borderBottomColor="gray.200">
+      <HStack p={4} justifyContent="center" borderBottom="1px solid" borderBottomColor="gray.200" spacing={3}>
         <Heading fontSize="xl">Mosaic Playground</Heading>
         {/* <HStack>
           <Image src="/mosaic.svg" height="22px" mt={-2} />
           <Heading fontSize="xl">playground</Heading>
         </HStack> */}
         <Spacer />
-        <Text fontSize="sm" fontWeight="medium">
-          Example Spec:
-        </Text>
-        <Select
-          value={exampleValue}
-          size="sm"
-          w="fit-content"
-          onChange={(e) => {
-            loadExample(e.target.value);
-            setExampleValue(e.target.value);
+        <Button
+          variant="outline"
+          leftIcon={<Icon icon="fluent:arrow-download-24-filled" />}
+          onClick={() => {
+            downloadBlob(
+              new Blob([rawSpec], { type: specFormat == "json" ? "application/json" : "application/yaml" }),
+              (parsedSpec.meta?.title ? snakeCase(parsedSpec.meta?.title) : "mosaic-spec") +
+                (specFormat == "json" ? ".json" : ".yaml")
+            );
           }}
         >
-          {examples.result?.map((e) => (
-            <option key={e.name} value={e.name}>
-              {e.name}
-            </option>
-          ))}
-        </Select>
-        <Checkbox isChecked={showLogs} onChange={(e) => setShowLogs(e.target.checked)}>
-          Show Query Logs
-        </Checkbox>
+          Download Spec
+        </Button>
+        <HStack>
+          <Text fontSize="sm" fontWeight="medium">
+            Spec Format:
+          </Text>
+          <Select
+            value={specFormat}
+            size="sm"
+            w="fit-content"
+            onChange={(e) => {
+              changeSpecFormat(e.target.value as SpecFormat);
+            }}
+          >
+            <option value="json">JSON</option>
+            <option value="yaml">YAML</option>
+          </Select>
+        </HStack>
+        <HStack>
+          <Text fontSize="sm" fontWeight="medium">
+            Example Spec:
+          </Text>
+          <Select
+            value={exampleValue}
+            size="sm"
+            w="fit-content"
+            onChange={(e) => {
+              loadExample(e.target.value);
+              setExampleValue(e.target.value);
+            }}
+          >
+            {examples.result?.map((e) => (
+              <option key={e.name} value={e.name}>
+                {e.name}
+              </option>
+            ))}
+          </Select>
+        </HStack>
+        <HStack>
+          {/* TODO: change order so label goes first */}
+          {/* <Text fontSize="sm" fontWeight="medium" cursor="pointer" onClick={(e) => setShowLogs((l) => !l)} flexGrow={1} alignSelf="stretch">
+            Show Query Logs
+          </Text> */}
+          <Checkbox
+            isChecked={showLogs}
+            onChange={(e) => setShowLogs(e.target.checked)}
+            sx={{ fontSize: "sm", fontWeight: "medium" }}
+          >
+            Show Query Logs
+          </Checkbox>
+        </HStack>
         <Button
           variant="outline"
           leftIcon={<Icon icon="fa:github" />}
@@ -166,6 +221,7 @@ export const MosaicPlayground = () => {
           <Editor
             height="100%"
             defaultLanguage="json"
+            language={specFormat}
             value={rawSpec}
             onChange={(v) => setRawSpec(v ?? "")}
             beforeMount={(monaco) => {

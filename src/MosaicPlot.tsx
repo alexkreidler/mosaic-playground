@@ -110,17 +110,17 @@ export const SimpleChart = ({ element, meta }: { element: HTMLElement | SVGSVGEl
             <Heading size="lg">{meta.title}</Heading>
           ) : (
             <Tooltip label="Use the meta.title and meta.description keys in the JSON spec to add details">
-              <Heading>Untitled Chart</Heading>
+              <Heading size="lg">Untitled Chart</Heading>
             </Tooltip>
           )}
-          {meta.description ? <Text>{meta.description}</Text> : null}
+          {meta.description ? <Text fontSize="md">{meta.description}</Text> : null}
         </Stack>
         <Spacer />
         <ExportMenu element={element} meta={meta} />
       </HStack>
       <Container child={element} />
 
-      {meta.credit ? <Text>{meta.credit}</Text> : null}
+      {meta.credit ? <Text fontSize="xs" color="gray.700">{meta.credit}</Text> : null}
     </Stack>
   );
 };

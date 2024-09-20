@@ -3,11 +3,17 @@
 Edit and explore [Mosaic](https://idl.uw.edu/mosaic/) visualizations in your browser. Inspired by the [Vega Editor](https://vega.github.io/editor/#/).
 
 Features:
-- Re-renders chart whenever the JSON specification changes. Keeps the last working version when there is an error
+- Re-renders chart whenever the specification changes. Keeps the last working version when there is an error
 - Includes example specifications from the Mosaic website (loads latest versions directly from the Github repo)
-- Download SVG or PNG of chart (doesn't include legends, parameters, or concatenated charts)
+- Download JSON or YAML spec and SVG or PNG of chart (doesn't include legends, parameters, or concatenated charts)
 - Shows underlying DuckDB queries in side panel
-- Shows 3 types of errors (JSON parse, Mosaic parse, Mosaic render) as toasts and in the console
+- Shows errors (Mosaic parse, Mosaic render) as toasts and in the console
+- Supports JSON or YAML specs and examples, can switch between the formats while editing.
+- Support autocomplete for Mosaic JSON specs using JSON schema
+
+Limitations:
+- Doesn't support formatting or JSON-schema autocomplete for YAML specifications (see `issues.md` and [upstream issue](https://github.com/suren-atoyan/monaco-react/issues/228) with `@monaco-editor/react`)
+- Does not show certain query errors like `Binder Error: Referenced column "b" not found in FROM clause!` (probably because they are inside an uncaught promise, may be an issue with Mosaic)
 
 ![Screenshot](mosaic-playground-screenshot.png)
 

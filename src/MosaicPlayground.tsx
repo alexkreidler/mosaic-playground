@@ -9,7 +9,6 @@ import {
   Select,
   Spacer,
   Stack,
-  useToast,
   Table,
   Tbody,
   Td,
@@ -27,6 +26,23 @@ import { useAsync } from "react-async-hook";
 import { format } from "date-fns";
 import "allotment/dist/style.css";
 import { Allotment } from "allotment";
+import { KeyCode, KeyMod, type languages } from "monaco-editor";
+import * as monaco from "monaco-editor";
+
+const JSON_SCHEMA_URL = "https://raw.githubusercontent.com/uwdata/mosaic/main/docs/public/schema/v0.11.0.json";
+function getSchemas(): languages.json.LanguageServiceDefaults["diagnosticsOptions"] {
+  return {
+    enableSchemaRequest: true,
+    schemas: [
+      {
+        uri: JSON_SCHEMA_URL,
+        fileMatch: ["*"],
+        // TODO: investigate whether better to bundle schema instead of load from Github
+        // schema: jsonSchema,
+      },
+    ],
+  };
+}
 
 export async function getExampleSpecsFromGithub(): Promise<{ name: string; url: string }[]> {
   const metaURL = "https://api.github.com/repos/uwdata/mosaic/contents/specs/json";
@@ -46,7 +62,6 @@ interface QueryLog {
 }
 
 export const MosaicPlayground = () => {
-  const toast = useToast();
   const mosaic = useContext(MosaicContext);
   const [parsedSpec, setParsedSpec] = useState(DEFAULT_SPEC);
   const [rawSpec, setRawSpec] = useState(JSON.stringify(DEFAULT_SPEC, null, 4));
@@ -57,10 +72,7 @@ export const MosaicPlayground = () => {
     let newParsed;
     try {
       newParsed = JSON.parse(rawSpec);
-    } catch (e) {
-      console.error(e);
-      toast({ title: "JSON error: " + (e as Error).message, status: "error", isClosable: true });
-    }
+    } catch (e) {}
     if (newParsed) {
       setParsedSpec(newParsed);
     }
@@ -85,6 +97,12 @@ export const MosaicPlayground = () => {
       }
       console.debug(...values);
     },
+    // error(...values: any[]) {
+    //   // TODO: handle uncaught errors like Error: Binder Error: Referenced column "b" not found in FROM clause!
+    //   if (values.length > 0 && typeof values[0] === "string" && values[0].includes("Uncaught")) {
+    //     console.log("UNCAUGHT", ...values)
+    //   }
+    // }
   };
 
   if (mosaic?.coordinator) {
@@ -145,7 +163,28 @@ export const MosaicPlayground = () => {
       </HStack>
       <Allotment>
         <Allotment.Pane preferredSize="30%">
-          <Editor height="100%" defaultLanguage="json" value={rawSpec} onChange={(v) => setRawSpec(v ?? "")} />
+          <Editor
+            height="100%"
+            defaultLanguage="json"
+            value={rawSpec}
+            onChange={(v) => setRawSpec(v ?? "")}
+            beforeMount={(monaco) => {
+              monaco.languages.json.jsonDefaults.setDiagnosticsOptions(getSchemas());
+            }}
+            onMount={(editor, monaco) => {
+              const addJSONSchema: monaco.editor.IActionDescriptor = {
+                id: "add-json-schema",
+                label: "Add JSON Schema for Mosaic ($schema key)",
+                contextMenuOrder: 0,
+                contextMenuGroupId: "1_modification",
+                keybindings: [KeyMod.CtrlCmd | KeyCode.KeyM],
+                run: () => {
+                  setRawSpec(JSON.stringify({ $schema: JSON_SCHEMA_URL, ...parsedSpec }, null, 4));
+                },
+              };
+              editor.addAction(addJSONSchema);
+            }}
+          />
         </Allotment.Pane>
         <Box backgroundColor="gray.100" h="full">
           <Center h="full">
@@ -176,7 +215,7 @@ function QueryLogsTable({ logs }: { logs: QueryLog[] }) {
       <Tbody>
         {logs.map((log, index) => (
           <Tr key={index}>
-            <Td>{format(log.time, "h:m:ss")}</Td>
+            <Td>{format(log.time, "h:m:mss")}</Td>
             <Td>{log.sql}</Td>
             {/* <Td>{log.type}</Td> */}
           </Tr>

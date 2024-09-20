@@ -5,11 +5,11 @@ const xlinkns = "http://www.w3.org/1999/xlink";
 const svgns = "http://www.w3.org/2000/svg";
 
 function serialize(svg: SVGSVGElement): ModifiedSVGAndBlob {
-  svg = svg.cloneNode(true);
+  svg = (svg.cloneNode(true) as SVGSVGElement);
   const fragment = window.location.href + "#";
   const walker = document.createTreeWalker(svg, NodeFilter.SHOW_ELEMENT);
   while (walker.nextNode()) {
-    for (const attr of walker.currentNode.attributes) {
+    for (const attr of (walker.currentNode as HTMLElement).attributes) {
       if (attr.value.includes(fragment)) {
         attr.value = attr.value.replace(fragment, "#");
       }
@@ -52,23 +52,23 @@ interface ModifiedSVGAndBlob {
 
 // Very close to getting PNG setup to work, we just need to inline the font-face declarations and their woff files as data URIs
 // Can we automate this? FIXME: For now just hardcode the inter font
-function rasterize(svg: SVGSVGElement): Promise<Blob> {
-  let resolve, reject;
-  const promise = new Promise((y, n) => ((resolve = y), (reject = n)));
-  const image = new Image();
-  image.onerror = reject;
-  image.onload = () => {
-    const rect = svg.getBoundingClientRect();
-    const { context, canvas } = context2d(rect.width, rect.height);
-    context.fillStyle = "white";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(image, 0, 0, rect.width, rect.height);
-    // Can do PNG, JPG, WEBP
-    context.canvas.toBlob(resolve);
-  };
-  image.src = URL.createObjectURL(serialize(svg).blob);
+function rasterize(svg: SVGSVGElement): Promise<Blob | null> {
+  const promise = new Promise<Blob | null>((resolve, reject) => {
+    const image = new Image();
+    image.onerror = reject;
+    image.onload = () => {
+      const rect = svg.getBoundingClientRect();
+      const { context, canvas } = context2d(rect.width, rect.height);
+      context.fillStyle = "white";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, rect.width, rect.height);
+      // Can do PNG, JPG, WEBP
+      context.canvas.toBlob(resolve);
+    };
+    image.src = URL.createObjectURL(serialize(svg).blob);
+  });
   return promise;
-}
+};
 
 export function downloadBlob(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob);
@@ -85,6 +85,9 @@ export async function exportChart(chart: SVGSVGElement | HTMLElement, fileName: 
   if (format == "svg") {
     downloadBlob(result.blob, fileName);
   } else if (format == "png") {
-    downloadBlob(await rasterize(svg), fileName);
+    const blob = await rasterize(svg);
+    if (blob) {
+      downloadBlob(blob, fileName);
+    }
   }
 }

@@ -5,8 +5,9 @@ Edit and explore [Mosaic](https://idl.uw.edu/mosaic/) visualizations in your bro
 Features:
 - Re-renders chart whenever the JSON specification changes. Keeps the last working version when there is an error
 - Includes example specifications from the Mosaic website (loads latest versions directly from the Github repo)
-- Shows errors as toasts and in the console
 - Download SVG or PNG of chart (doesn't include legends, parameters, or concatenated charts)
+- Shows underlying DuckDB queries in side panel
+- Shows 3 types of errors (JSON parse, Mosaic parse, Mosaic render) as toasts and in the console
 
 ![Screenshot](mosaic-playground-screenshot.png)
 

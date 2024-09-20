@@ -5,7 +5,7 @@ import * as vg from "@uwdata/vgplot";
 import { createAPIContext } from "@uwdata/vgplot";
 import { Coordinator } from "@uwdata/mosaic-core";
 
-import React, { PropsWithChildren, useContext, useEffect, useRef } from "react";
+import React, { PropsWithChildren, useContext, useEffect, useRef, useState } from "react";
 
 import { parseSpec, astToDOM, Spec } from "@uwdata/mosaic-spec";
 import { useAsync } from "react-async-hook";

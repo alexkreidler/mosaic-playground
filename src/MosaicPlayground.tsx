@@ -1,29 +1,10 @@
-import {
-  Box,
-  Button,
-  Center,
-  Text,
-  HStack,
-  Heading,
-  Link,
-  Select,
-  Spacer,
-  Stack,
-  Table,
-  Tbody,
-  Td,
-  Th,
-  Thead,
-  Tr,
-  Checkbox,
-} from "@chakra-ui/react";
+import { Box, Button, Center, Text, HStack, Heading, Link, Select, Spacer, Stack, Checkbox } from "@chakra-ui/react";
 import { Icon } from "@iconify-icon/react";
 import { DEFAULT_SPEC, MosaicContext, MosaicPlot } from "./MosaicPlot.jsx";
 
 import Editor from "@monaco-editor/react";
 import { useContext, useEffect, useState } from "react";
 import { useAsync } from "react-async-hook";
-import { format } from "date-fns";
 import { Allotment } from "allotment";
 import { KeyCode, KeyMod, type languages } from "monaco-editor";
 import * as monaco from "monaco-editor";
@@ -31,6 +12,7 @@ import { parse, stringify } from "yaml";
 import "allotment/dist/style.css";
 import { downloadBlob } from "./exportChart.js";
 import { snakeCase } from "change-case";
+import { QueryLogsTable, QueryLog } from "./QueryLogsTable.js";
 
 const JSON_SCHEMA_URL = "https://raw.githubusercontent.com/uwdata/mosaic/main/docs/public/schema/v0.11.0.json";
 function getSchemas(): languages.json.LanguageServiceDefaults["diagnosticsOptions"] {
@@ -60,12 +42,6 @@ export async function getExampleSpecsFromGithub(format: SpecFormat): Promise<{ n
   return examples;
 }
 
-interface QueryLog {
-  type: string;
-  sql: string;
-  time: Date;
-}
-
 export const MosaicPlayground = () => {
   const mosaic = useContext(MosaicContext);
   const [parsedSpec, setParsedSpec] = useState(DEFAULT_SPEC);
@@ -74,6 +50,7 @@ export const MosaicPlayground = () => {
   const examples = useAsync(getExampleSpecsFromGithub, [specFormat]);
   // TODO: allow setting custom DuckDB rest/socket backend connection
   // const [useBackend, setUseBackend] = useState(false);
+
   useEffect(() => {
     let newParsed;
     try {
@@ -94,7 +71,6 @@ export const MosaicPlayground = () => {
   }
 
   function changeSpecFormat(value: SpecFormat) {
-    // TODO: convert currently parsed spec to new format
     const newRawSpec = value === "json" ? JSON.stringify(parsedSpec, null, 4) : stringify(parsedSpec, { indent: 4 });
     setSpecFormat(value);
     setRawSpec(newRawSpec);
@@ -111,12 +87,7 @@ export const MosaicPlayground = () => {
       }
       console.debug(...values);
     },
-    // error(...values: any[]) {
-    //   // TODO: handle uncaught errors like Error: Binder Error: Referenced column "b" not found in FROM clause!
-    //   if (values.length > 0 && typeof values[0] === "string" && values[0].includes("Uncaught")) {
-    //     console.log("UNCAUGHT", ...values)
-    //   }
-    // }
+    // TODO: handle uncaught errors like Error: Binder Error: Referenced column "b" not found in FROM clause!
   };
 
   if (mosaic?.coordinator) {
@@ -129,7 +100,14 @@ export const MosaicPlayground = () => {
   return (
     <Stack h="100%" w="full" spacing={0}>
       <HStack p={4} justifyContent="center" borderBottom="1px solid" borderBottomColor="gray.200" spacing={3}>
-        <Heading fontSize="xl">Mosaic Playground</Heading>
+        <Stack spacing={0}>
+          <Heading fontSize="xl">Mosaic Playground</Heading>
+          <Link href="https://github.com/alexkreidler/mosaic-playground" target="_blank">
+            <Text fontSize="sm" color="gray.500">
+              view source on Github
+            </Text>
+          </Link>
+        </Stack>
         {/* <HStack>
           <Image src="/mosaic.svg" height="22px" mt={-2} />
           <Heading fontSize="xl">playground</Heading>
@@ -186,9 +164,6 @@ export const MosaicPlayground = () => {
         </HStack>
         <HStack>
           {/* TODO: change order so label goes first */}
-          {/* <Text fontSize="sm" fontWeight="medium" cursor="pointer" onClick={(e) => setShowLogs((l) => !l)} flexGrow={1} alignSelf="stretch">
-            Show Query Logs
-          </Text> */}
           <Checkbox
             isChecked={showLogs}
             onChange={(e) => setShowLogs(e.target.checked)}
@@ -199,21 +174,21 @@ export const MosaicPlayground = () => {
         </HStack>
         <Button
           variant="outline"
+          leftIcon={<Icon icon="ion:book-outline" />}
+          as={Link}
+          href="https://idl.uw.edu/mosaic/"
+          target="_blank"
+        >
+          Mosaic Docs
+        </Button>
+        <Button
+          variant="outline"
           leftIcon={<Icon icon="fa:github" />}
           as={Link}
           href="https://github.com/uwdata/mosaic"
           target="_blank"
         >
           Github
-        </Button>
-        <Button
-          variant="outline"
-          leftIcon={<Icon icon="ion:book-outline" />}
-          as={Link}
-          href="https://idl.uw.edu/mosaic/"
-          target="_blank"
-        >
-          Docs
         </Button>
       </HStack>
       <Allotment>
@@ -257,27 +232,3 @@ export const MosaicPlayground = () => {
     </Stack>
   );
 };
-
-function QueryLogsTable({ logs }: { logs: QueryLog[] }) {
-  return (
-    <Table variant="simple" size="sm">
-      <Thead>
-        <Tr>
-          <Th>Timestamp</Th>
-          <Th>Query</Th>
-          {/* <Th>Type</Th> */}
-        </Tr>
-      </Thead>
-      <Tbody>
-        {logs.map((log, index) => (
-          <Tr key={index}>
-            <Td>{format(log.time, "h:m:mss")}</Td>
-            <Td>{log.sql}</Td>
-            {/* <Td>{log.type}</Td> */}
-          </Tr>
-        ))}
-        {/* TODO: autoscroll to bottom/highlight new queries */}
-      </Tbody>
-    </Table>
-  );
-}

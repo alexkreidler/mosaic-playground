@@ -38,8 +38,9 @@ export const DEFAULT_SPEC: Spec = {
 
 const DEFAULT_ATTRIBUTES: PlotAttributes = {
   xLabelAnchor: "center",
-  xLabelArrow: "none",
   yLabelAnchor: "center",
+  // TODO: these don't do anything, fix
+  xLabelArrow: "none",
   yLabelArrow: "none",
 
   rRange: [0, 18],
@@ -47,6 +48,8 @@ const DEFAULT_ATTRIBUTES: PlotAttributes = {
   // "xLabel":"Count",
   // width: 640,
   // height: 200,
+  marginLeft: 50,
+  marginBottom:  40,
   style: {
     // fill: "#4c78a8",
     fontFamily: "Inter",
@@ -137,11 +140,11 @@ export const MosaicPlot = ({ spec }: { spec: NicePlot } = { spec: DEFAULT_SPEC }
       }
 
       // @ts-ignore
-      let newSpec: Spec = {
-        ...DEFAULT_ATTRIBUTES,
-        ...spec,
-      };
+      let newSpec: Spec = spec;
       delete newSpec["$schema"];
+      // These defaults will also apply to nested plots (e.g. the flights-200k example)
+      newSpec.plotDefaults = { ...DEFAULT_ATTRIBUTES, ...newSpec.plotDefaults };
+      
       if (newSpec.data) {
         for (const [k, v] of Object.entries(newSpec.data!)) {
           if (v.file && v.file.startsWith("data/")) {

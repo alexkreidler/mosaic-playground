@@ -1,35 +1,18 @@
-import { Box, Button, Center, Text, HStack, Heading, Link, Select, Spacer, Stack, Checkbox } from "@chakra-ui/react";
+import { Box, Button, Center, Text, HStack, Heading, Link, Select, Spacer, Stack, Checkbox, useDisclosure } from "@chakra-ui/react";
 import { Icon } from "@iconify-icon/react";
 import { DEFAULT_SPEC, MosaicContext, MosaicPlot } from "./MosaicPlot.jsx";
 
-import Editor from "@monaco-editor/react";
 import { useContext, useEffect, useState } from "react";
 import { useAsync } from "react-async-hook";
 import { Allotment } from "allotment";
-import { KeyCode, KeyMod, type languages } from "monaco-editor";
-import * as monaco from "monaco-editor";
 import { parse, stringify } from "yaml";
 import "allotment/dist/style.css";
 import { downloadBlob } from "./exportChart.js";
 import { snakeCase } from "change-case";
 import { QueryLogsTable, QueryLog } from "./QueryLogsTable.js";
+import { MosaicEditor, SpecFormat } from "./MosaicEditor.js";
+import UploadData from "./UploadData.js";
 
-const JSON_SCHEMA_URL = "https://raw.githubusercontent.com/uwdata/mosaic/main/docs/public/schema/v0.11.0.json";
-function getSchemas(): languages.json.LanguageServiceDefaults["diagnosticsOptions"] {
-  return {
-    enableSchemaRequest: true,
-    schemas: [
-      {
-        uri: JSON_SCHEMA_URL,
-        fileMatch: ["*"],
-        // TODO: investigate whether better to bundle schema instead of load from Github
-        // schema: jsonSchema,
-      },
-    ],
-  };
-}
-
-export type SpecFormat = "json" | "yaml";
 
 export async function getExampleSpecsFromGithub(format: SpecFormat): Promise<{ name: string; url: string }[]> {
   const metaURL = "https://api.github.com/repos/uwdata/mosaic/contents/specs/" + format;
@@ -55,7 +38,7 @@ export const MosaicPlayground = () => {
     let newParsed;
     try {
       newParsed = specFormat == "json" ? JSON.parse(rawSpec) : parse(rawSpec);
-    } catch (e) {}
+    } catch (e) { }
     if (newParsed) {
       setParsedSpec(newParsed);
     }
@@ -89,6 +72,37 @@ export const MosaicPlayground = () => {
     },
     // TODO: handle uncaught errors like Error: Binder Error: Referenced column "b" not found in FROM clause!
   };
+  const disclosure = useDisclosure();
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'loading' | 'done'>('idle');
+
+  const uploadButtonContent = {
+    'idle': (
+      <Button
+        variant="outline"
+        leftIcon={<Icon icon="fluent:arrow-up-24-filled" />}
+        onClick={disclosure.onOpen}
+      >
+        Upload Data
+      </Button>
+    ),
+    'loading': (
+      <Button
+        variant="outline"
+        isLoading
+        loadingText='Loading Data'
+      >
+      </Button>
+    ),
+    'done': (
+      <Button
+        variant="outline"
+        leftIcon={<Icon icon="fluent:checkmark-24-filled" />}
+        disabled
+      >
+        Done
+      </Button>
+    )
+  };
 
   if (mosaic?.coordinator) {
     // @ts-ignore
@@ -113,6 +127,8 @@ export const MosaicPlayground = () => {
           <Heading fontSize="xl">playground</Heading>
         </HStack> */}
         <Spacer />
+        {uploadButtonContent[uploadStatus]}
+        <UploadData disclosure={disclosure} setUploadStatus={setUploadStatus} />
         <Button
           variant="outline"
           leftIcon={<Icon icon="fluent:arrow-download-24-filled" />}
@@ -120,7 +136,7 @@ export const MosaicPlayground = () => {
             downloadBlob(
               new Blob([rawSpec], { type: specFormat == "json" ? "application/json" : "application/yaml" }),
               (parsedSpec.meta?.title ? snakeCase(parsedSpec.meta?.title) : "mosaic-spec") +
-                (specFormat == "json" ? ".json" : ".yaml")
+              (specFormat == "json" ? ".json" : ".yaml")
             );
           }}
         >
@@ -193,29 +209,7 @@ export const MosaicPlayground = () => {
       </HStack>
       <Allotment>
         <Allotment.Pane preferredSize="30%">
-          <Editor
-            height="100%"
-            defaultLanguage="json"
-            language={specFormat}
-            value={rawSpec}
-            onChange={(v) => setRawSpec(v ?? "")}
-            beforeMount={(monaco) => {
-              monaco.languages.json.jsonDefaults.setDiagnosticsOptions(getSchemas());
-            }}
-            onMount={(editor, monaco) => {
-              const addJSONSchema: monaco.editor.IActionDescriptor = {
-                id: "add-json-schema",
-                label: "Add JSON Schema for Mosaic ($schema key)",
-                contextMenuOrder: 0,
-                contextMenuGroupId: "1_modification",
-                keybindings: [KeyMod.CtrlCmd | KeyCode.KeyM],
-                run: () => {
-                  setRawSpec(JSON.stringify({ $schema: JSON_SCHEMA_URL, ...parsedSpec }, null, 4));
-                },
-              };
-              editor.addAction(addJSONSchema);
-            }}
-          />
+          <MosaicEditor specFormat={specFormat} rawSpec={rawSpec} setRawSpec={setRawSpec} parsedSpec={parsedSpec} />
         </Allotment.Pane>
         <Box backgroundColor="gray.100" h="full">
           <Center h="full">
@@ -232,3 +226,4 @@ export const MosaicPlayground = () => {
     </Stack>
   );
 };
+

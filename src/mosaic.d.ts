@@ -96,6 +96,8 @@ declare module "@uwdata/mosaic-core" {
 		error(...args: unknown[]): void;
 	}
 
+	export function socketConnector(uri = 'ws://localhost:3000/')
+
 	// WASM Connector
 	export function wasmConnector(
 		options?: WasmConnectorOptions,

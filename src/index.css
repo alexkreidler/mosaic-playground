@@ -1,5 +1,5 @@
 :root {
-    font-family: "Inter", sans-serif;
+    font-family: "Inter", Arial, sans-serif;
 }
 
 #root {
@@ -8,4 +8,9 @@
 
 .overflow-y-scroll {
     overflow-y: scroll !important;
+}
+
+.legend > * {
+    font-family: "Inter", Arial, sans-serif;
+    font-feature-settings: 'tnum' 1;
 }

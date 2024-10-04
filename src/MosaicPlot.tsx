@@ -14,6 +14,8 @@ import { LoadingSpinner } from "@saas-ui/react";
 import { PlotAttributes } from "@uwdata/mosaic-spec/dist/types/spec/PlotAttribute";
 import { Meta } from "@uwdata/mosaic-spec/dist/types/spec/Spec";
 import { ExportMenu } from "./ExportMenu";
+import { useDuckDb } from "duckdb-wasm-kit";
+import { socketConnector, wasmConnector } from "@uwdata/mosaic-core"
 
 export const DEFAULT_SPEC: Spec = {
   data: {
@@ -48,8 +50,12 @@ const DEFAULT_ATTRIBUTES: PlotAttributes = {
   // "xLabel":"Count",
   // width: 640,
   // height: 200,
+
+  // https://github.com/vega/vega/blob/fb2e60274071033b4c427410ef43375b6f314cf2/packages/vega-parser/src/config.js#L215-L241
+
+  // Need these adjustments for Inter
   marginLeft: 50,
-  marginBottom:  40,
+  marginBottom: 40,
   style: {
     // fill: "#4c78a8",
     fontFamily: "Inter",
@@ -77,14 +83,17 @@ export type NicePlot = Spec & WithSchema;
 export const MosaicContext = React.createContext<MosaicContextValue | null>(null);
 
 export const MosaicProvider: React.FC<PropsWithChildren<{ remote?: boolean }>> = ({ children, remote = false }) => {
+  const { db, loading, error } = useDuckDb();
   const coordinator = vg.coordinator();
-  const connector = remote ? vg.socketConnector("ws://localhost:3000") : vg.wasmConnector();
+  const connector = remote ? socketConnector("ws://localhost:3000") : wasmConnector({ duckdb: db });
   coordinator.databaseConnector(connector);
 
   const api = React.useMemo(() => createAPIContext({ coordinator }), []);
   const value = { coordinator, api };
   // @ts-ignore
   window.MOSAIC = value;
+  // @ts-ignore
+  window.DB = db;
 
   return <MosaicContext.Provider value={value}>{children}</MosaicContext.Provider>;
 };
@@ -144,7 +153,7 @@ export const MosaicPlot = ({ spec }: { spec: NicePlot } = { spec: DEFAULT_SPEC }
       delete newSpec["$schema"];
       // These defaults will also apply to nested plots (e.g. the flights-200k example)
       newSpec.plotDefaults = { ...DEFAULT_ATTRIBUTES, ...newSpec.plotDefaults };
-      
+
       if (newSpec.data) {
         for (const [k, v] of Object.entries(newSpec.data!)) {
           if (v.file && v.file.startsWith("data/")) {
@@ -155,6 +164,8 @@ export const MosaicPlot = ({ spec }: { spec: NicePlot } = { spec: DEFAULT_SPEC }
       let meta = newSpec.meta;
 
       const ast = parseSpec(newSpec);
+      console.log("AST", ast);
+
       try {
         //Plot defaults list[] of { type: "attribute", children: null, name: "xLabelAnchor", value: "center" }
         const compiled = await astToDOM(ast, { api: mc.api } as any);

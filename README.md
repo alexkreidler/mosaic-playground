@@ -10,6 +10,8 @@ Features:
 - Shows errors (Mosaic parse, Mosaic render) as toasts and in the console
 - Supports JSON or YAML specs and examples, can switch between the formats while editing.
 - Support autocomplete for Mosaic JSON specs using JSON schema
+- Add/upload local CSV, Parquet, or Arrow files to visualize
+- All visualizations are computed locally in your browser
 
 Limitations:
 - Doesn't support formatting or JSON-schema autocomplete for YAML specifications (see `issues.md` and [upstream issue](https://github.com/suren-atoyan/monaco-react/issues/228) with `@monaco-editor/react`)
@@ -17,10 +19,18 @@ Limitations:
 
 ![Screenshot](mosaic-playground-screenshot.png)
 
+TODOs:
+- Support uploading JSON files
+- Simplify UploadData component, maybe using `react-dropzone`.
+- Refactor out components like MosaicProvider and logic like the exportChart function so it can be used by third-party apps
+- Add docs with typedoc
+
 ## Uses
 
 - [Mosaic](https://idl.uw.edu/mosaic/)
 - [Observable Plot](https://observablehq.com/plot/getting-started)
+- [DuckDB WASM](https://github.com/duckdb/duckdb-wasm)
+- [duckdb-wasm-kit](https://github.com/holdenmatt/duckdb-wasm-kit)
 - [@monaco-editor/react](https://github.com/suren-atoyan/monaco-react)
 - [Chakra UI](https://chakra-ui.com/)
 - [SaaS UI](https://saas-ui.dev/)

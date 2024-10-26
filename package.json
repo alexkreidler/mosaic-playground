@@ -9,10 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@duckdb/duckdb-wasm": "1.28.1-dev279.0",
-    "duckdb-wasm-kit": "^0.1.38",
     "@chakra-ui/icons": "^2.1.1",
     "@chakra-ui/react": "^2.8.2",
+    "@duckdb/duckdb-wasm": "1.28.1-dev279.0",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
     "@iconify-icon/react": "^2.1.0",
@@ -25,7 +24,9 @@
     "allotment": "^1.20.2",
     "change-case": "^5.4.4",
     "date-fns": "^4.1.0",
+    "duckdb-wasm-kit": "^0.1.38",
     "framer-motion": "^11.5.5",
+    "html-to-image": "^1.11.11",
     "react": "^18.3.1",
     "react-async-hook": "^4.0.0",
     "react-dom": "^18.3.1",

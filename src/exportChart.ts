@@ -1,93 +1,47 @@
-// import { downloadSvg, downloadPng } from "svg-crowbar";
-
-const xmlns = "http://www.w3.org/2000/xmlns/";
-const xlinkns = "http://www.w3.org/1999/xlink";
-const svgns = "http://www.w3.org/2000/svg";
-
-function serialize(svg: SVGSVGElement): ModifiedSVGAndBlob {
-  svg = (svg.cloneNode(true) as SVGSVGElement);
-  const fragment = window.location.href + "#";
-  const walker = document.createTreeWalker(svg, NodeFilter.SHOW_ELEMENT);
-  while (walker.nextNode()) {
-    for (const attr of (walker.currentNode as HTMLElement).attributes) {
-      if (attr.value.includes(fragment)) {
-        attr.value = attr.value.replace(fragment, "#");
-      }
-    }
-  }
-  svg.setAttributeNS(xmlns, "xmlns", svgns);
-  svg.setAttributeNS(xmlns, "xmlns:xlink", xlinkns);
-
-  var defs = svg.querySelector("defs");
-  if (!defs) {
-    defs = document.createElementNS(svgns, "defs");
-    svg.appendChild(defs);
-  }
-
-  var style = document.createElementNS(svgns, "style");
-  defs.appendChild(style);
-
-  style.textContent = '@import url("https://fonts.googleapis.com/css?family=Inter:wght@400;500;600;700?display=swap");';
-  const serializer = new window.XMLSerializer();
-  const string = serializer.serializeToString(svg);
-  // TODO maybe return modified element for rasterize
-  return { svg, blob: new Blob([string], { type: "image/svg+xml" }) };
-}
-
-function context2d(width: number, height: number, dpi: number = 3) {
-  if (dpi == null) dpi = devicePixelRatio;
-  var canvas = document.createElement("canvas");
-  canvas.width = width * dpi;
-  canvas.height = height * dpi;
-  canvas.style.width = width + "px";
-  var context = canvas.getContext("2d")!;
-  context.scale(dpi, dpi);
-  return { context, canvas };
-}
-
-interface ModifiedSVGAndBlob {
-  svg: SVGSVGElement;
-  blob: Blob;
-}
-
-// Very close to getting PNG setup to work, we just need to inline the font-face declarations and their woff files as data URIs
-// Can we automate this? FIXME: For now just hardcode the inter font
-function rasterize(svg: SVGSVGElement): Promise<Blob | null> {
-  const promise = new Promise<Blob | null>((resolve, reject) => {
-    const image = new Image();
-    image.onerror = reject;
-    image.onload = () => {
-      const rect = svg.getBoundingClientRect();
-      const { context, canvas } = context2d(rect.width, rect.height);
-      context.fillStyle = "white";
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(image, 0, 0, rect.width, rect.height);
-      // Can do PNG, JPG, WEBP
-      context.canvas.toBlob(resolve);
-    };
-    image.src = URL.createObjectURL(serialize(svg).blob);
-  });
-  return promise;
-};
+import { toPng, toJpeg, toBlob, toPixelData, toSvg, getFontEmbedCSS } from 'html-to-image';
+import { Options } from 'html-to-image/lib/types';
 
 export function downloadBlob(blob: Blob, fileName: string) {
   const url = URL.createObjectURL(blob);
+  downloadLink(url, fileName);
+}
+
+export function downloadLink(url: string, fileName: string) {
   const a = document.createElement("a");
   a.href = url;
   a.download = fileName;
   a.click();
-  URL.revokeObjectURL(url);
+  // URL.revokeObjectURL(url);
 }
 
-export async function exportChart(chart: SVGSVGElement | HTMLElement, fileName: string, format: "svg" | "png" = "png") {
-  const svg = chart.querySelector("svg")!;
-  const result = serialize(svg);
+function isElement(node: Node): node is Element {
+  return node.nodeType === Node.ELEMENT_NODE;
+}
+
+// Renders the images at double size so they are high-resolution
+const RESOLUTION_BOOST = 2;
+
+export async function exportChart(chart: SVGSVGElement | HTMLElement, fileName: string, format: "svg" | "png" | "jpg" = "png") {
+  // TODO: we could export the title, description, and source credit (this would also add padding which would be nice)
+  
+  // Just ignore errors like `Error inlining remote css file DOMException: CSSStyleSheet.cssRules getter: Not allowed to access cross-origin stylesheet`
+  // We fixed by adding crossorigin="anonymous" to the Inter google fonts stylesheet
+  // Array.from(document.styleSheets).forEach((s) => {
+  //   if (isElement(s.ownerNode!)) {
+  //     (s.ownerNode! as any).crossOrigin = "anonymous"
+  //   }
+  // })
+  const fontEmbedCSS = await getFontEmbedCSS(chart as any);
+
+  const dims = chart.getBoundingClientRect();
+
+  const options: Options = { backgroundColor: "#fff", fontEmbedCSS, canvasHeight: dims.height * RESOLUTION_BOOST, canvasWidth: dims.width * RESOLUTION_BOOST }
+
   if (format == "svg") {
-    downloadBlob(result.blob, fileName);
+    downloadLink(await toSvg(chart as any, options), fileName);
   } else if (format == "png") {
-    const blob = await rasterize(svg);
-    if (blob) {
-      downloadBlob(blob, fileName);
-    }
+    downloadLink(await toPng(chart as any, options), fileName);
+  } else if (format == "jpg") {
+    downloadLink(await toJpeg(chart as any, options), fileName);
   }
 }

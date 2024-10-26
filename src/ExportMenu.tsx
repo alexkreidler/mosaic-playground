@@ -15,6 +15,9 @@ export const ExportMenu = ({ element, meta }: { element: HTMLElement | SVGSVGEle
         <MenuItem onClick={() => exportChart(element, meta.title ? snakeCase(meta.title) : "mosaic-chart", "png")}>
           Download PNG
         </MenuItem>
+        <MenuItem onClick={() => exportChart(element, meta.title ? snakeCase(meta.title) : "mosaic-chart", "jpg")}>
+          Download JPEG
+        </MenuItem>
         <MenuItem onClick={() => exportChart(element, meta.title ? snakeCase(meta.title) : "mosaic-chart", "svg")}>
           Download SVG
         </MenuItem>

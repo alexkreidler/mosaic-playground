@@ -5,7 +5,7 @@ import * as monaco from "monaco-editor";
 
 export type SpecFormat = "json" | "yaml";
 
-const JSON_SCHEMA_URL = "https://raw.githubusercontent.com/uwdata/mosaic/main/docs/public/schema/v0.11.0.json";
+const JSON_SCHEMA_URL = "https://raw.githubusercontent.com/uwdata/mosaic/main/docs/public/schema/v0.12.2.json";
 function getSchemas(): languages.json.LanguageServiceDefaults["diagnosticsOptions"] {
   return {
     enableSchemaRequest: true,

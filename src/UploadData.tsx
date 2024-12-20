@@ -19,7 +19,7 @@ import {
     useToast,
 } from '@chakra-ui/react';
 import { Icon } from "@iconify-icon/react";
-import { insertFile, useDuckDb } from 'duckdb-wasm-kit';
+import { AsyncDuckDB, insertFile, useDuckDb } from 'duckdb-wasm-kit';
 import { snakeCase } from 'change-case';
 
 interface FileWithTable {
@@ -37,6 +37,15 @@ interface UploadDataProps {
     validFileTypes?: string[]
 }
 
+async function insertOrReplace(db: AsyncDuckDB, file: File, tableName: string) {
+    const conn = await db.connect();
+    const tableExists = (await (conn).query(`SELECT * FROM information_schema.tables WHERE table_name = '${tableName}'`)).toArray();
+    if (tableExists.length > 0) {
+        console.warn(`Table ${tableName} already exists, dropping it so it can be replaced with uploaded file ${file.name}`)
+        await conn.query(`DROP TABLE ${tableName}`);
+    }
+    return insertFile(db, file, tableName);
+}
 
 const defaultValidFileTypes = ['.csv', '.parquet', '.arrow'];
 const UploadData: React.FC<UploadDataProps> = ({ disclosure, setUploadStatus, validFileTypes = defaultValidFileTypes }) => {
@@ -67,7 +76,7 @@ const UploadData: React.FC<UploadDataProps> = ({ disclosure, setUploadStatus, va
 
             try {
                 await Promise.all(files.map(({ file, tableName }) => {
-                    return insertFile(db, file, tableName);
+                    return insertOrReplace(db, file, tableName)
                 }))
                 setUploadStatus('done');
                 setTimeout(() => setUploadStatus('idle'), 3000);

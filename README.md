@@ -22,6 +22,10 @@ Limitations:
 - Does not show certain query errors like `Binder Error: Referenced column "b" not found in FROM clause!` (probably because they are inside an uncaught promise, may be an issue with Mosaic)
 
 TODOs:
+- Move the JSON/YAML select to above the SQL editor (more intuitive)
+- Add autoscroll for the Query Viewer
+- Add autocomplete for field names - would need to know every JSON/Yaml key that takes a field name value
+- Add LLM generation? - Find best few-shot examples and docs to give good context
 - Support uploading JSON files
 - Simplify UploadData component, maybe using `react-dropzone`.
 - Refactor out components like MosaicProvider and logic like the exportChart function so it can be used by third-party apps
